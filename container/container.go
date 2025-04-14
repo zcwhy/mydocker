@@ -6,11 +6,11 @@ import (
 	"syscall"
 )
 
-func CreateContainer(tty bool) *exec.Cmd {
-	args := []string{"init", "Hello, my docker"}
+func CreateContainer(tty bool, firstCmd string) (*exec.Cmd, error) {
+	args := []string{"init", firstCmd}
 	cmd := exec.Command("/proc/self/exe", args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWUTS |  syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWNET,
+		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWNET,
 	}
 
 	if tty {
@@ -18,5 +18,14 @@ func CreateContainer(tty bool) *exec.Cmd {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
-	return cmd
+
+	mntURL := "/root/mnt"
+	rootURL := "/root/"
+	err := CreateWorkSpace(rootURL, mntURL)
+	if err != nil {
+		return nil, err
+	}
+	// cmd.Dir = mntURL
+
+	return cmd, nil
 }

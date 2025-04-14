@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"log"
+
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -11,7 +12,7 @@ var rootCmd = &cobra.Command{
 	Short: "mydocker is a simple container runtime implementation.",
 }
 
-func init() {
+func InitCmd() {
 	rootCmd.AddCommand(NewRunCmd())
 	rootCmd.AddCommand(NewInitCmd())
 

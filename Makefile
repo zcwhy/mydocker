@@ -1,6 +1,6 @@
 .PHONY:build test
 
-run: build
+run: 
 	sudo ./docker run -t -i /bin/bash && echo $?
 
 build:

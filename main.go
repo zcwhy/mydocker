@@ -1,8 +1,11 @@
 package main
 
 import (
-	_ "mydocker/cmd"
+	"mydocker/cmd"
+	"mydocker/log"
 )
 
 func main() {
+	log.LogInit()
+	cmd.InitCmd()
 }

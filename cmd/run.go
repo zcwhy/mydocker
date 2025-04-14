@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"mydocker/container"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var tty bool
@@ -15,7 +16,7 @@ func NewRunCmd() *cobra.Command {
 		Use:   "run",
 		Short: "Create a container.",
 		Run: func(cmd *cobra.Command, args []string) {
-			Run(tty, command)
+			Run()
 		},
 	}
 
@@ -25,11 +26,15 @@ func NewRunCmd() *cobra.Command {
 	return runCmd
 }
 
-func Run(tty bool, cmd string) {
-	createCmd := container.CreateContainer(tty)
+func Run() {
+	createCmd, err := container.CreateContainer(tty, command)
+	if err != nil {
+		return
+	}
 
 	if err := createCmd.Start(); err != nil {
 		fmt.Println(err)
+		return
 	}
 	createCmd.Wait()
 	os.Exit(-1)
