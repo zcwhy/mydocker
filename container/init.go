@@ -11,38 +11,40 @@ import (
 )
 
 // 设置文件系统
-func SetUpMount() {
+func SetUpMount() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Errorf("Get current location error %v", err)
+		log.Errorf("Get current location error %v", err)
 	}
-	fmt.Printf("Current location is %s\n", cwd)
 
-	entries, err := os.ReadDir(cwd)
+	err = syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
 	if err != nil {
-		fmt.Println("读取目录失败:", err)
-		return
+		log.Errorf("")
+		return err
 	}
 
-	fmt.Println("目录内容：")
-	for _, entry := range entries {
-		// 打印所有文件和文件夹，包括隐藏文件（以 . 开头）
-		fmt.Println(entry.Name())
+	err = pivotRoot(cwd)
+	if err != nil {
+		log.Errorf("[SetUpMount] pivot_root err: %s", err)
+		return err
 	}
-	// err = pivotRoot(cwd)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// // mount proc
-	// syscall.Mount("proc", "/proc", "proc", syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV, "")
-	// syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755")
+
+	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
+	if err := syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), ""); err != nil {
+		log.Errorf("[SetUpMount] mount proc to /proc err: %s", err)
+		return err
+	}
+
+	return nil
 }
 
 func pivotRoot(root string) error {
-	syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, "")
+	if err := syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
+		return err
+	}
 
 	pivotDir := filepath.Join(root, ".pivot_root")
-	if err := os.Mkdir(pivotDir, 0777); err != nil {
+	if err := os.MkdirAll(pivotDir, 0777); err != nil {
 		return err
 	}
 
@@ -80,23 +82,22 @@ func createReadOnlyLayer(baseUrl string) (string, error) {
 	busyBoxUrl := baseUrl + "busybox/"
 	bustBoxTarUrl := baseUrl + "busybox.tar"
 
-	exist, err := util.PathExists(busyBoxUrl)
-	if err != nil {
+	exist, err := util.PathExists(bustBoxTarUrl)
+	if err != nil || !exist {
 		log.Errorf("[createReadOnlyLayer] find path %s err %v", bustBoxTarUrl, err)
 		return "", err
 	}
 
-	if !exist {
-		if err := os.Mkdir(busyBoxUrl, 0777); err != nil {
-			log.Errorf("[createReadOnlyLayer] mkdir %s err %v", busyBoxUrl, err)
-			return "", err
-		}
-
-		if _, err := exec.Command("tar", "-xvf", bustBoxTarUrl, "-C", busyBoxUrl).CombinedOutput(); err != nil {
-			log.Errorf("[createReadOnlyLayer] unTar dir %s err %v", bustBoxTarUrl, err)
-			return "", err
-		}
+	if err := os.MkdirAll(busyBoxUrl, 0777); err != nil {
+		log.Errorf("[createReadOnlyLayer] mkdir %s err %v", busyBoxUrl, err)
+		return "", err
 	}
+
+	if _, err := exec.Command("tar", "-xvf", bustBoxTarUrl, "-C", busyBoxUrl).CombinedOutput(); err != nil {
+		log.Errorf("[createReadOnlyLayer] unTar dir %s err %v", bustBoxTarUrl, err)
+		return "", err
+	}
+
 	return busyBoxUrl, nil
 }
 
@@ -116,19 +117,51 @@ func createMountPoint(lowerdir, upperdir, mntUrl string) error {
 		return err
 	}
 
-	workDir := "/root/work"
+	workDir := "/home/zcy/work"
 	if err := os.MkdirAll(workDir, 0777); err != nil {
 		log.Errorf("[createMountPoint] create workDir: %s, err: %v", workDir, err)
 		return err
 	}
 	args := "lowerdir=" + lowerdir + ",upperdir=" + upperdir + ",workdir=" + workDir
 	cmd := exec.Command("mount", "-t", "overlay", "overlay", "-o", args, mntUrl)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Errorf("[createMountPoint] mount aufs arg:%s, mnt point:%s err: %v", args, mntUrl, err)
+	if _, err := cmd.CombinedOutput(); err != nil {
+		log.Errorf("[createMountPoint] mount overlayfs arg:%s, mnt point:%s err: %v", args, mntUrl, err)
 		return err
 	}
 
 	return nil
+}
+
+// 容器结束后清理工作空间
+func DeleteWorkSpace() {
+	rootUrl := "/home/zcy/"
+	mntUrl := "/home/zcy/mnt/"
+	DeleteMountPoint(mntUrl)
+
+	DeleteWriteLayer(rootUrl)
+}
+
+func DeleteMountPoint(mntUrl string) {
+	cmd := exec.Command("umount", mntUrl)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+
+	}
+
+	if err := os.RemoveAll(mntUrl); err != nil {
+
+	}
+}
+
+func DeleteWriteLayer(rootUrl string) {
+	writeUrl := rootUrl + "writeLayer/"
+	if err := os.RemoveAll(writeUrl); err != nil {
+
+	}
+
+	workUrl := rootUrl + "work/"
+	if err := os.RemoveAll(workUrl); err != nil {
+
+	}
 }

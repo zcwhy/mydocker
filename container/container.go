@@ -19,13 +19,13 @@ func CreateContainer(tty bool, firstCmd string) (*exec.Cmd, error) {
 		cmd.Stderr = os.Stderr
 	}
 
-	mntURL := "/root/mnt"
-	rootURL := "/root/"
+	mntURL := "/home/zcy/mnt"
+	rootURL := "/home/zcy/"
 	err := CreateWorkSpace(rootURL, mntURL)
 	if err != nil {
 		return nil, err
 	}
-	// cmd.Dir = mntURL
+	cmd.Dir = mntURL
 
 	return cmd, nil
 }

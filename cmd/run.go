@@ -29,13 +29,17 @@ func NewRunCmd() *cobra.Command {
 func Run() {
 	createCmd, err := container.CreateContainer(tty, command)
 	if err != nil {
-		return
+		os.Exit(-1)
 	}
 
 	if err := createCmd.Start(); err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(-1)
 	}
 	createCmd.Wait()
+
+	// fmt.Println("1111111111111111")
+	container.DeleteWorkSpace()
+
 	os.Exit(-1)
 }

@@ -1,7 +1,7 @@
 .PHONY:build test
 
 run: 
-	sudo ./docker run -t -i /bin/bash && echo $?
+	sudo ./docker run -t -i /bin/sh && echo $?
 
 build:
 	go build -o docker main.go

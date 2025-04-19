@@ -36,12 +36,20 @@ func LogInit() {
 	}
 }
 
+func Debugf(template string, args ...interface{}) {
+	logger.Sugar().Debugf(template, args...)
+}
+
 func Infof(template string, args ...interface{}) {
 	logger.Sugar().Infof(template, args...)
 }
 
 func Errorf(template string, args ...interface{}) {
 	logger.Sugar().Errorf(template, args...)
+}
+
+func Debug(template string) {
+	logger.Sugar().Debug(template)
 }
 
 func Info(template string) {
