@@ -64,20 +64,6 @@ func pivotRoot(root string) error {
 	return os.Remove(pivotDir)
 }
 
-func CreateWorkSpace(baseUrl string, mntUrl string) error {
-	lowerdir, err := createReadOnlyLayer(baseUrl)
-	if err != nil {
-		return err
-	}
-
-	upperdir, err := createWriteLayer(baseUrl)
-	if err != nil {
-		return err
-	}
-
-	return createMountPoint(lowerdir, upperdir, mntUrl)
-}
-
 func createReadOnlyLayer(baseUrl string) (string, error) {
 	busyBoxUrl := baseUrl + "busybox/"
 	bustBoxTarUrl := baseUrl + "busybox.tar"
